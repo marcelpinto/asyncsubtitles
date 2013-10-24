@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<methodCall>
+<methodName>LogIn</methodName>
+<param>
+<value><string></string></value>
+</param>
+<param>
+<value><string></string></value>
+</param>
+<param>
+<value><string></string></value>
+</param>
+<param>
+<value><string>OS Test User Agent</string></value>
+</param>
+</methodCall>
