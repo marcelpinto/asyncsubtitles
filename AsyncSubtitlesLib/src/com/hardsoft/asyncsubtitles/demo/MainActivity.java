@@ -1,21 +1,37 @@
 package com.hardsoft.asyncsubtitles.demo;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import android.app.ActionBar;
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
+import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.SearchView;
 import android.widget.TextView;
 
 import com.hardsoft.asyncsubtitles.AsyncSubtitles;
@@ -29,23 +45,71 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 	private OSAdapter adp;
 	private List<OSubtitle> mListSub;
 	private ProgressDialog pgr;
+	private String mPath;
+	private String mLang;
+	private String mTitle;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
+		ActionBar aBar = this.getActionBar();
+		aBar.setBackgroundDrawable(new ColorDrawable(Color
+				.parseColor("#C80000")));
+		setContentView(R.layout.view_subtitles);
+		mPath = getIntent().getExtras().getString("path","");
+		mLang = getIntent().getExtras().getString("lang","all");
+		mTitle = getIntent().getExtras().getString("title","");
+		Log.v("MPB", "Title: "+mTitle);
 		getListView().setOnItemClickListener(this);
 		listSub = new ArrayList<String>();
 		adp = new OSAdapter (this);
 		setListAdapter(adp);
 		try {
+			pgr = ProgressDialog.show(this, null, "Buscando subtitulos", true);
 			mASub = new AsyncSubtitles(this, this);
-			mASub.setLanguagesArray(new String[] { "spa" });
-			mASub.setNeededParamsToSearch(null, "Family guy", "468492", 10, 2);
+			mASub.setLanguagesArray(new String[] { mLang });
+			mASub.setNeededParamsToSearch(new File(mPath), mTitle, null, -1, -1);
 			mASub.getPossibleSubtitle();
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
+			pgr.dismiss();
 		}
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// TODO Auto-generated method stub
+		super.onCreateOptionsMenu(menu);
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.main, menu);
+
+		SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+		final MenuItem searchItem = menu.findItem(R.id.action_search);
+		SearchView searchView = (SearchView) searchItem.getActionView();
+		// Assumes current activity is the searchable activity
+		searchView.setIconifiedByDefault(false); // Do not iconify the widget;
+													// expand it by default
+		searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+
+			@Override
+			public boolean onQueryTextSubmit(String query) {
+				// TODO Auto-generated method stub
+				searchItem.collapseActionView();
+				pgr = ProgressDialog.show(MainActivity.this, null, "Buscando subtitulos", true);
+				mASub.setLanguagesArray(new String[] { mLang });
+				mASub.setNeededParamsToSearch(null, query, null, -1, -1);
+				mASub.getPossibleSubtitle();
+				return true;
+			}
+
+			@Override
+			public boolean onQueryTextChange(String newText) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+		});
+
+		return true;
 	}
 	
 	@Override
@@ -64,22 +128,37 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 
 	public class OSAdapter extends BaseAdapter {
 		private final Context context;
+		private LayoutInflater inflater;
 
 		public OSAdapter(Context c) {
 			this.context= c;
+			inflater = (LayoutInflater) context.getSystemService(LAYOUT_INFLATER_SERVICE);
 		}
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-			TextView txt;
 			if (convertView==null) {
-				txt = new TextView(context);
-				txt.setPadding(10, 10, 10, 10);
+				convertView = inflater.inflate(R.layout.item_subtitle, null);
 			}
-			else 
-				txt = (TextView) convertView;
-			txt.setText(listSub.get(position));
-			return txt;
+			TextView name = (TextView) convertView.findViewById(R.id.txt_subtitle_name);
+			TextView lang = (TextView) convertView.findViewById(R.id.txt_subtitle_lang);
+			TextView rat = (TextView) convertView.findViewById(R.id.txt_subtitle_rating);
+			double rating = mListSub.get(position).getSubRating();
+			String txtRating = "Rating: ";
+			if (rating<1)
+				txtRating+="N/A";
+			else
+				txtRating+=rating;
+			rat.setText(txtRating);
+			
+			name.setText("Name: "+mListSub.get(position).getSubFileName());
+			lang.setText("Language: "+mListSub.get(position).getSubLanguageID());
+			
+			if (mListSub.get(position).getMatchedBy().equalsIgnoreCase("moviehash"))
+				convertView.findViewById(R.id.img_subtitle_perfect).setVisibility(View.VISIBLE);
+			else
+				convertView.findViewById(R.id.img_subtitle_perfect).setVisibility(View.GONE);
+			return convertView;
 		}
 
 
@@ -115,6 +194,8 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		for (OSubtitle s : list) {
 			listSub.add(s.getSubFileName()+ " LANG:"+s.getSubLanguageID() + " " + s.getIDSubtitleFile());
 		}
+		if(pgr!=null)
+			pgr.dismiss();
 		adp.notifyDataSetChanged();
 	}
 
@@ -123,20 +204,93 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		// TODO Auto-generated method stub
 		if (pgr!=null)
 			pgr.dismiss();
+		
+		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		builder
+			.setMessage(R.string.txt_dialog_subtitle_download_finished)
+			.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+					startVideo(mPath, false);
+					finish();
+					dialog.dismiss();
+				}
+			})
+			.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+					finish();
+					dialog.dismiss();
+				}
+			}).create()
+			.show();
 	}
 
 	@Override
 	public void onError(int error) {
 		// TODO Auto-generated method stub
+		if (pgr!=null)
+			pgr.dismiss();
+		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		builder
+			.setMessage(R.string.txt_dialog_subtitle_download_finished)
+			.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+					dialog.dismiss();
+				}
+			})
+			.create()
+			.show();
+	}
+	
+	public Collection<File> listFileTree(File dir, boolean str) {
+		Set<File> fileTree = new HashSet<File>();
+		for (File entry : dir.listFiles()) {
+			if (entry.isFile() && FileUtils.isStreaming(entry.getName(), str))
+				fileTree.add(entry);
+			else if (entry.isDirectory())
+				fileTree.addAll(listFileTree(entry, str));
+		}
+		return fileTree;
+	}
 
+	private boolean startVideo(String path, final boolean streaming) {
+		// TODO Auto-generated method stub
+		Intent viewMediaIntent = new Intent();
+		viewMediaIntent.setAction(android.content.Intent.ACTION_VIEW);
+		Log.v("MPB", "Play file in " + path);
+		File file = new File(path);
+		if (file.isDirectory()) {
+			List<File> list = FileUtils.collectionToArray(listFileTree(file,streaming));
+			if (list == null || list.isEmpty())
+				return false;
+			viewMediaIntent
+					.setDataAndType(Uri.fromFile(list.get(0)), "video/*");
+		} else
+			viewMediaIntent.setDataAndType(Uri.fromFile(file), "video/*");
+
+		viewMediaIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+				| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+		startActivity(viewMediaIntent);
+		return true;
 	}
 
 	@Override
-	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+	public void onItemClick(AdapterView<?> arg0, View arg1,final int arg2, long arg3) {
 		// TODO Auto-generated method stub
-		Log.v("MPB", "Download");
-		pgr =ProgressDialog.show(MainActivity.this,null,"Downloading subtitle "+mListSub.get(arg2).getSubFileName(),true);
-		mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), Environment.getExternalStorageDirectory().getAbsolutePath()+"/familyuu.srt");
+		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		builder.setTitle(R.string.txt_dialog_subtitle_download)
+			.setMessage(mListSub.get(arg2).getSubFileName())
+			.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+					pgr =ProgressDialog.show(MainActivity.this,null,"Downloading subtitle "+mListSub.get(arg2).getSubFileName(),true);
+					mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), mPath.substring(0, mPath.lastIndexOf('.'))+".srt");
+				}
+			})
+			.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+					dialog.dismiss();
+				}
+			}).create()
+			.show();
 	}
 
 }
