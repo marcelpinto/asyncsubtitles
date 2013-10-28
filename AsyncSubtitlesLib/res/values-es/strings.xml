@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="txt_dialog_subtitle_download">¿Quieres descargarte este subtítulo?</string>
+    <string name="txt_dialog_subtitle_download_finished">Subtítulo descargado.\n¿Quieres reproducir el video?</string>
+    <string name="txt_dialog_subtitle_mx">Recomendamos utilizar el reproductor MX Player para la correcta visualización de los subtítulos.\n¿Quieres descargarlo en Google play?</string>
+    <string name="txt_dialog_download_error">Ups! Algo ha pasado. Vuelve a intentar</string>
+    
+
+</resources>

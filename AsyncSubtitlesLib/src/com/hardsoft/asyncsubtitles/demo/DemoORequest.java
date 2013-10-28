@@ -1,7 +1,7 @@
 package com.hardsoft.asyncsubtitles.demo;
 
 import com.hardsoft.asyncsubtitles.ORequest;
-import com.hardsoft.asyncsubtitles.activity.OSubtitleActivity;
+import com.hardsoft.asyncsubtitles.OSubtitleActivity;
 
 import android.app.Activity;
 import android.content.Intent;
