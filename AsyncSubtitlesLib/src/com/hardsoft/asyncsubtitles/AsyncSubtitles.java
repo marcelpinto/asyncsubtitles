@@ -50,18 +50,15 @@ public class AsyncSubtitles {
 	private OpenSubtitlesAPI mOsa;
 	private String mToken;
 	private long mTokenTime;
-	private String mLanguages;
-	private File mFile;
-	private String mQuert;
-	private String mImdbid;
-	private int mSeason;
-	private int mEpisode;
+	private ORequest mReq;
 
 	public ArrayList<OSubtitle> mResultList;
 
 	private AsyncTask<Void, Void, ArrayList<OSubtitle>> mTask;
 
 	private AsyncTask<String, Void, Boolean> mDownTask;
+
+	private String mLanguages;
 
 	public AsyncSubtitles(Context c, SubtitlesInterface callback)
 			throws MalformedURLException {
@@ -95,13 +92,8 @@ public class AsyncSubtitles {
 	 * @param season
 	 * @param episode
 	 */
-	public void setNeededParamsToSearch(File file, String query, String imdbid,
-			int season, int episode) {
-		this.mFile = file;
-		this.mQuert = query;
-		this.mImdbid = imdbid;
-		this.mSeason = season;
-		this.mEpisode = episode;
+	public void setNeededParamsToSearch(ORequest oreq) {
+		this.mReq = oreq;
 	}
 
 	/**
@@ -110,7 +102,7 @@ public class AsyncSubtitles {
 	 * @return true if the task has successfully started, false otherwise
 	 */
 	public boolean getPossibleSubtitle() {
-		if (mFile == null && mQuert == null && mImdbid == null)
+		if (mReq==null)
 			return false;
 		if (mTask == null
 				|| mTask.getStatus().equals(AsyncTask.Status.FINISHED)) {
@@ -223,16 +215,21 @@ public class AsyncSubtitles {
 					mTokenTime = System.currentTimeMillis();
 				}
 				List<Object> reqList = new ArrayList<Object>();
-
-				if (mFile != null)
-					reqList.add(mOsa.getSearchByHash(mFile, mLanguages));
-				if (mQuert != null && !mQuert.equals(""))
-					reqList.add(mOsa.getSearchByQuery(mQuert, mLanguages,
-							mSeason, mEpisode));
-				if (mImdbid != null && !mImdbid.equals(""))
-					reqList.add(mOsa.getSearchByImdbId(mImdbid, mLanguages));
+				String path = mReq.getFilePath();
+				File f = new File(path);
+				if (f.exists())
+					reqList.add(mOsa.getSearchByHash(f, mLanguages));
+					
+				String query=mReq.getQuery();
+				if (!query.equals("")) 
+					reqList.add(mOsa.getSearchByQuery(query, mLanguages, -1, -1));
+				
+				String imdbid = mReq.getImdbid();
+				if (!imdbid.equals(""))
+					reqList.add(mOsa.getSearchByImdbId(imdbid, mLanguages));
 
 				mResultList = mOsa.executeSearch(mToken, reqList);
+				 
 			} catch (Exception e) {
 				e.printStackTrace();
 				return null;

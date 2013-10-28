@@ -1,4 +1,4 @@
-package com.hardsoft.asyncsubtitles.demo;
+package com.hardsoft.asyncsubtitles.activity;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -8,18 +8,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import android.app.ActionBar;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
-import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -33,33 +32,34 @@ import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.SearchView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.hardsoft.asyncsubtitles.AsyncSubtitles;
 import com.hardsoft.asyncsubtitles.AsyncSubtitles.SubtitlesInterface;
+import com.hardsoft.asyncsubtitles.ORequest;
 import com.hardsoft.asyncsubtitles.OSubtitle;
+import com.hardsoft.asyncsubtitles.R;
+import com.hardsoft.asyncsubtitles.demo.FileUtils;
 
-public class MainActivity extends ListActivity implements SubtitlesInterface, OnItemClickListener {
+public class OSubtitleActivity extends ListActivity implements SubtitlesInterface, OnItemClickListener {
 
+	public static final String OREQUEST_PARAM = "orequest";
+	
 	private AsyncSubtitles mASub;
 	private ArrayList<String> listSub;
 	private OSAdapter adp;
 	private List<OSubtitle> mListSub;
 	private ProgressDialog pgr;
-	private String mPath;
-	private String mLang;
-	private String mTitle;
+
+	private ORequest mORequest;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		ActionBar aBar = this.getActionBar();
-		aBar.setBackgroundDrawable(new ColorDrawable(Color
-				.parseColor("#C80000")));
+		//ActionBar aBar = this.getActionBar();
+		//aBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#C80000")));
 		setContentView(R.layout.view_subtitles);
-		mPath = getIntent().getExtras().getString("path","");
-		mLang = getIntent().getExtras().getString("lang","all");
-		mTitle = getIntent().getExtras().getString("title","");
-		Log.v("MPB", "Title: "+mTitle);
+		mORequest = (ORequest) getIntent().getExtras().getSerializable(OREQUEST_PARAM);
 		getListView().setOnItemClickListener(this);
 		listSub = new ArrayList<String>();
 		adp = new OSAdapter (this);
@@ -67,8 +67,8 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		try {
 			pgr = ProgressDialog.show(this, null, "Buscando subtitulos", true);
 			mASub = new AsyncSubtitles(this, this);
-			mASub.setLanguagesArray(new String[] { mLang });
-			mASub.setNeededParamsToSearch(new File(mPath), mTitle, null, -1, -1);
+			mASub.setLanguagesArray(mORequest.getLanguages());
+			mASub.setNeededParamsToSearch(mORequest);
 			mASub.getPossibleSubtitle();
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -76,28 +76,31 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		}
 	}
 	
+	@SuppressLint("NewApi")
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// TODO Auto-generated method stub
 		super.onCreateOptionsMenu(menu);
+		if (Build.VERSION.SDK_INT<Build.VERSION_CODES.HONEYCOMB)
+			return true;
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.main, menu);
 
-		SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+		//SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
 		final MenuItem searchItem = menu.findItem(R.id.action_search);
 		SearchView searchView = (SearchView) searchItem.getActionView();
-		// Assumes current activity is the searchable activity
-		searchView.setIconifiedByDefault(false); // Do not iconify the widget;
-													// expand it by default
+		// 
+		searchView.setIconifiedByDefault(false); 
+												
 		searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
 
 			@Override
 			public boolean onQueryTextSubmit(String query) {
 				// TODO Auto-generated method stub
 				searchItem.collapseActionView();
-				pgr = ProgressDialog.show(MainActivity.this, null, "Buscando subtitulos", true);
-				mASub.setLanguagesArray(new String[] { mLang });
-				mASub.setNeededParamsToSearch(null, query, null, -1, -1);
+				pgr = ProgressDialog.show(OSubtitleActivity.this, null, "Buscando subtitulos", true);
+				mASub.setLanguagesArray(mORequest.getLanguages());
+				mASub.setNeededParamsToSearch(new ORequest(null, query, null, null));
 				mASub.getPossibleSubtitle();
 				return true;
 			}
@@ -205,12 +208,16 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		if (pgr!=null)
 			pgr.dismiss();
 		
-		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		if (mORequest.getFilePath().equals("") || !(new File(mORequest.getFilePath()).exists())) {
+			Toast.makeText(getApplicationContext(), "Subtitle downloaded", Toast.LENGTH_LONG).show();
+			return;
+		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(OSubtitleActivity.this);
 		builder
 			.setMessage(R.string.txt_dialog_subtitle_download_finished)
 			.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
-					startVideo(mPath, false);
+					startVideo(mORequest.getFilePath(), false);
 					finish();
 					dialog.dismiss();
 				}
@@ -229,7 +236,7 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		// TODO Auto-generated method stub
 		if (pgr!=null)
 			pgr.dismiss();
-		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		AlertDialog.Builder builder = new AlertDialog.Builder(OSubtitleActivity.this);
 		builder
 			.setMessage(R.string.txt_dialog_subtitle_download_finished)
 			.setPositiveButton("YES", new DialogInterface.OnClickListener() {
@@ -273,16 +280,23 @@ public class MainActivity extends ListActivity implements SubtitlesInterface, On
 		return true;
 	}
 
+	private String mPath;
+	
 	@Override
 	public void onItemClick(AdapterView<?> arg0, View arg1,final int arg2, long arg3) {
 		// TODO Auto-generated method stub
-		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		mPath = mORequest.getFilePath();
+		if (mPath.equals("")) {
+			mPath = Environment.getExternalStorageDirectory()+"/"+mListSub.get(arg2).getSubFileName();
+			Toast.makeText(getApplicationContext(), "Path not found saving subtitle to\n"+mPath, Toast.LENGTH_SHORT).show();
+		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(OSubtitleActivity.this);
 		builder.setTitle(R.string.txt_dialog_subtitle_download)
 			.setMessage(mListSub.get(arg2).getSubFileName())
 			.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
-					pgr =ProgressDialog.show(MainActivity.this,null,"Downloading subtitle "+mListSub.get(arg2).getSubFileName(),true);
-					mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), mPath.substring(0, mPath.lastIndexOf('.'))+".srt");
+					pgr =ProgressDialog.show(OSubtitleActivity.this,null,"Downloading subtitle "+mListSub.get(arg2).getSubFileName(),true);
+					mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), mPath.substring(0,mPath.lastIndexOf('.'))+".srt");
 				}
 			})
 			.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
