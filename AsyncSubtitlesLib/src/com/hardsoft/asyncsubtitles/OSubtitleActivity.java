@@ -166,14 +166,16 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 			double rating = mListSub.get(position).getSubRating();
 			String txtRating = "Rating: ";
 			if (rating<1)
-				txtRating+="N/A";
-			else
+				rat.setVisibility(View.GONE);
+			else {
+				rat.setVisibility(View.VISIBLE);
 				txtRating+=rating;
-			rat.setText(txtRating);
+				rat.setText(txtRating);
+			}
+			
 			
 			name.setText("Name: "+mListSub.get(position).getSubFileName());
-			lang.setText("Language: "+mListSub.get(position).getSubLanguageID());
-			
+			lang.setText("Language: "+mListSub.get(position).getSubLanguageID().toUpperCase());
 			if (mListSub.get(position).getMatchedBy().equalsIgnoreCase("moviehash"))
 				convertView.findViewById(R.id.img_subtitle_perfect).setVisibility(View.VISIBLE);
 			else
