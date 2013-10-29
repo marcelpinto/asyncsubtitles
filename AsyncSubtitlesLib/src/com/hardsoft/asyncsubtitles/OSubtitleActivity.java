@@ -81,6 +81,7 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 		adp = new OSAdapter (this);
 		setListAdapter(adp);
 		try {
+			Log.v("MPB", "Param: "+mORequest.toString());
 			pgr = ProgressDialog.show(this, null, "Buscando subtitulos", true);
 			mASub = new AsyncSubtitles(this, this);
 			mASub.setLanguagesArray(mORequest.getLanguages());
@@ -356,7 +357,13 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 			.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
 					pgr =ProgressDialog.show(OSubtitleActivity.this,null,"Downloading subtitle "+mListSub.get(arg2).getSubFileName(),true);
-					mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), mPath.substring(0,mPath.lastIndexOf('.'))+".srt");
+					try {
+						String path = mPath.substring(0,mPath.lastIndexOf('.'))+".srt";
+						mASub.downloadSubByIdToPath(mListSub.get(arg2).getIDSubtitleFile(), path);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					
 				}
 			})
 			.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {

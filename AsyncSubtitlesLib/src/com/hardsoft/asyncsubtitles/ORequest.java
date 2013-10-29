@@ -1,6 +1,7 @@
 package com.hardsoft.asyncsubtitles;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class ORequest implements Serializable {
 	
@@ -59,6 +60,16 @@ public class ORequest implements Serializable {
 	}
 	public void setLanguages(String[] languages) {
 		this.languages = languages;
+	}
+
+	@Override
+	public String toString() {
+		return "ORequest ["
+				+ (filePath != null ? "filePath=" + filePath + ", " : "")
+				+ (query != null ? "query=" + query + ", " : "")
+				+ (imdbid != null ? "imdbid=" + imdbid + ", " : "")
+				+ (languages != null ? "languages="
+						+ Arrays.toString(languages) : "") + "]";
 	}
 	
 	
