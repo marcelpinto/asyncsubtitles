@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    
     <string name="txt_dialog_subtitle_download">Would you like to download this subtitle?</string>
     <string name="txt_dialog_subtitle_download_finished">Subtitle downloaded\nDo you want to play the movie now?</string>
     <string name="txt_dialog_subtitle_mx">We recommend to use MX player to be able to watch this file with subtitles. Because not all the media players support Subtitles.\nWould you like to download it?</string>
     <string name="txt_dialog_download_error">Something happened, try it again.</string>
-    
-
 </resources>

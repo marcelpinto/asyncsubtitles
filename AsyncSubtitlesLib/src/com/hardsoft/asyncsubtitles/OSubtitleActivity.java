@@ -149,9 +149,11 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 	public class OSAdapter extends BaseAdapter {
 		private final Context context;
 		private LayoutInflater inflater;
+		private boolean isFirstTime;
 
 		public OSAdapter(Context c) {
 			this.context= c;
+			this.isFirstTime = true;
 			inflater = (LayoutInflater) context.getSystemService(LAYOUT_INFLATER_SERVICE);
 		}
 
@@ -180,6 +182,11 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 				convertView.findViewById(R.id.img_subtitle_perfect).setVisibility(View.VISIBLE);
 			else
 				convertView.findViewById(R.id.img_subtitle_perfect).setVisibility(View.GONE);
+			
+			if (isFirstTime) {
+				getListView().setSelection(0);
+				isFirstTime=false;
+			}
 			return convertView;
 		}
 
@@ -228,7 +235,8 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 			pgr.dismiss();
 		
 		if (mORequest.getFilePath().equals("") || !(new File(mORequest.getFilePath()).exists())) {
-			Toast.makeText(getApplicationContext(), "Subtitle downloaded", Toast.LENGTH_LONG).show();
+			//Toast.makeText(getApplicationContext(), "Subtitle downloaded", Toast.LENGTH_LONG).show();
+			complain();
 			return;
 		}
 		if (!isPackageExisted("com.mxtech.videoplayer.ad") && !isPackageExisted("com.mxtech.videoplayer.pro")) {
@@ -299,18 +307,25 @@ public class OSubtitleActivity extends ListActivity implements SubtitlesInterfac
 		// TODO Auto-generated method stub
 		if (pgr!=null)
 			pgr.dismiss();
+		
+		complain();
+	}
+	
+	private void complain() {
+		// TODO Auto-generated method stub
 		AlertDialog.Builder builder = new AlertDialog.Builder(OSubtitleActivity.this);
 		builder
-			.setMessage(R.string.txt_dialog_subtitle_download_finished)
-			.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+			.setMessage(R.string.txt_dialog_download_error)
+			.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
 					dialog.dismiss();
+					finish();
 				}
 			})
 			.create()
 			.show();
 	}
-	
+
 	public Collection<File> listFileTree(File dir, boolean str) {
 		Set<File> fileTree = new HashSet<File>();
 		for (File entry : dir.listFiles()) {
